@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Extensions.Exceptions;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace Practice_web_api.Controllers
 {
@@ -17,11 +19,7 @@ namespace Practice_web_api.Controllers
 
 
 
-        static ProductController()
-        {
-            _product.Add(new Product { Id = 1, Name = "Electronics", Price = 2000 });
-
-        }
+       
 
         [HttpPost]
         public async Task<IActionResult> postdata(Product product)
@@ -37,17 +35,41 @@ namespace Practice_web_api.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> GetALL([FromQuery] PaginationParameters paginationParameters)
         {
+            var products = _context.Products.AsQueryable();
+            
             try
             {
-                var product = await _context.Products.ToListAsync();
-                return Ok(product);
+                var totalItems = await products.CountAsync();
+                var items = await products.Skip((paginationParameters.PageNumber - 1) * paginationParameters.PageSize)
+                                           .Take(paginationParameters.PageSize)
+                                           .ToListAsync();
+                if (items == null)
+                {
+                    throw new NoContentException($"Product  are null.");
+
+                }
+                var paginationMetadata = new
+                                        {
+                                            totalCount = totalItems,
+                                            pageSize = paginationParameters.PageSize,
+                                            currentPage = paginationParameters.PageNumber,
+                                            totalPages = (int)Math.Ceiling(totalItems / (double)paginationParameters.PageSize),
+                                            Items = items
+                };
+
+               
+                return Ok(paginationMetadata);
             }
-            catch (Exception ex)
+            catch (NotFoundException ex)
             {
-                return BadRequest(ex.Message);
+                return NotFound(new ErrorResponse { Message = ex.Message });
+
             }
+            catch (Exception ex) { return StatusCode(500, "An unexpected error occurred."); }
+
+
 
         }
 
@@ -57,7 +79,7 @@ namespace Practice_web_api.Controllers
             var product = _context.Products.FindAsync(id);
             if (product == null)
             {
-                return NotFound();
+                throw new NoContentException($"Product with {id} not found.");
             }
             return Ok(product);
 
