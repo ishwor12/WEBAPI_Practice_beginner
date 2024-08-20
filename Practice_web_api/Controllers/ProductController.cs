@@ -1,4 +1,5 @@
-﻿using Extensions.Exceptions;
+﻿using Domain;
+using Extensions.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -10,9 +11,9 @@ namespace Practice_web_api.Controllers
     public class ProductController : ControllerBase
     {
         private static readonly List<Product> _product = new();
-        private readonly ApplicationDbContext _context;
+        private readonly ApplicationContext _context;
 
-        public ProductController(ApplicationDbContext context)
+        public ProductController(ApplicationContext context)
         {
             _context = context;
         }
@@ -24,7 +25,7 @@ namespace Practice_web_api.Controllers
         [HttpPost]
         public async Task<IActionResult> postdata(Product product)
         {
-            _context.Products.Add(product);
+            _context.products.Add(product);
             await _context.SaveChangesAsync();
             return CreatedAtAction("Get", new { id = product.Id }, product);
 
@@ -37,7 +38,7 @@ namespace Practice_web_api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetALL([FromQuery] PaginationParameters paginationParameters)
         {
-            var products = _context.Products.AsQueryable();
+            var products = _context.products.AsQueryable();
             
             try
             {
@@ -76,7 +77,7 @@ namespace Practice_web_api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetbyID(int id)
         {
-            var product = _context.Products.FindAsync(id);
+            var product = _context.products.FindAsync(id);
             if (product == null)
             {
                 throw new NoContentException($"Product with {id} not found.");
@@ -87,7 +88,7 @@ namespace Practice_web_api.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Put(int id, [FromBody] Product product)
         {
-            var existingproduct = await _context.Products.FindAsync(id);
+            var existingproduct = await _context.products.FindAsync(id);
 
             //var existingproduct = _product.FirstOrDefault(y => y.Id == id);
             if (existingproduct == null)
@@ -110,7 +111,7 @@ namespace Practice_web_api.Controllers
         [HttpDelete("{id}")]
         public async Task <IActionResult> Delete(int id)
         {
-            var product = await _context.Products.FindAsync(id);
+            var product = await _context.products.FindAsync(id);
             if (product == null)
             {
                 {
@@ -119,7 +120,7 @@ namespace Practice_web_api.Controllers
 
                 }
             }
-            _context.Products.Remove(product);
+            _context.products.Remove(product);
             await _context.SaveChangesAsync();
             return NoContent();
 
